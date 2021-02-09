@@ -1,0 +1,544 @@
+HOST: https://payments.weldpay.it/
+
+# Weldpay Payments Gateway
+
+## Test environment:
+
+If you want to test your integration you can use these Sandbox credentials.
+
+In this case you can simulate call to you ReturnUrl, CancelUrl and ServerNotificationUrl.
+
++ Credentials
+
+      clientId: iyJKc5Kuxlua3tTYTlj4vyA5Ucv86g3BwGEguVQGqSI=
+      clientSecret: FBFBgwqgwGigYN+1XF7noctCNBMfGkAFciv7IHna5UWeioDe68SmGiQEBOOEIEs4
+
+Use the Apiary Console to test your calls:
+
+* Select the action clicking on its title
+* Click on "Try" button or "Switch to Console" on the right panel
+* Edit "Body" content
+* __*Select "Production" (not Apiary Mock Server or Proxy)*__
+* Click on "Call Resource"
+* Check "Response Body" - "Real" for Response content (for example the generated url on generate-transaction action, use it to nacigato to sandbox transaction page)
+
+
+## Authentication
+
+All server-server API requests use Basic Authentication with clientId and clientSecret as username and password.
+
++ Header
+    
+      Authorization: Basic base64(clientId:clientSecret)
+      
++ Test environment example
+
+      Authorization: Basic aXlKS2M1S3V4bHVhM3RUWVRsajR2eUE1VWN2ODZnM0J3R0VndVZRR3FTST06RkJGQmd3cWd3R2lnWU4rMVhGN25vY3RDTkJNZkdrQUZjaXY3SUhuYTVVV2Vpb0RlNjhTbUdpUUVCT09FSUVzNA==
+
+
+## Endpoint
+
+The *base url* for every request is:
+
+**https://payments.weldpay.it**
+
+For example to generate a transaction you have to call this url:
+
+**https://payments.weldpay.it/api/1.0/gateway/generate-transaction**
+
+> The base url is valid in both production and sandox cases, the environment is selected in base of the used credentials.
+
+## Generate Transaction and Get Url [/api/1.0/gateway/generate-transaction]
+
+### /api/1.0/gateway/generate-transaction [POST]
+
+You may create new transaction and get the authenticated url to redirect client.
+
+#### Significant fields:
+
++ `Lang` (string): Payment Website Requested Language. **Available languages: it, en, de, fr, es**.
++ `Buyer` (object): Buyer (ecommerce user) details.
++ `Buyer.TaxCode` (string, optional): Buyer Tax Code.
++ `Buyer.Address` (object): Buyer Billing Address.
++ `Buyer.ShippingAddress` (object, optional): Buyer Shipping Address, if empty Address is used.
++ `OrderId` (string): Your Order Identification Number.
++ `OrderDescription` (string, optional): Optional text to show to the user.
++ `OrderPackages` (number): Number of packages.
++ `Items` (object[]): Order rows. Almost 1 item is needed. **Only EUR currency is accepted.**
++ `ShippingItems` (object[], optional): Order Shipping Fee Rows. **Only EUR currency is accepted.**
++ `SuccessUrl` (string, url): Url where user is **redirected** on successful transaction.
++ `CancelUrl` (string, url): Url where user is **redirected** on failed transaction.
++ `ServerNotificationUrl` (string, url, optional): Url for **server-server confirmation call** (IPN).
++ `AdditionalData` (object, optional): To enable additional features. Leave empty unless otherwise specified.
+
+#### Response:
+
+Payment page url. You have to redirect your customer to this payment page.
+
+Here an example:
+
+`https://payments.weldpay.it/Payments/Create?r_id=101-AJw6y1nizcu80vNqeuPCPqUgf470TQavntXl2zc3Eks%3D`
+
++ Request (application/json)
+
+    + Headers
+    
+            Authorization: Basic aXlKS2M1S3V4bHVhM3RUWVRsajR2eUE1VWN2ODZnM0J3R0VndVZRR3FTST06RkJGQmd3cWd3R2lnWU4rMVhGN25vY3RDTkJNZkdrQUZjaXY3SUhuYTVVV2Vpb0RlNjhTbUdpUUVCT09FSUVzNA==
+    
+    + Body
+    
+            {
+              "Lang": "it",
+              "Buyer": {
+                "Firstname": "Mario",
+                "Lastname": "Rossi",
+                "TaxCode": "RSSMRA88C15L400X",
+                "Email": "mario.rossi@email.it",
+                "Address": {
+                  "ZipCode": "20132",
+                  "City": "Milano",
+                  "Province": "MI",
+                  "Street": "via Roma, 18A"
+                },
+                "ShippingAddress": {
+                  "ZipCode": null,
+                  "City": null,
+                  "Province": null,
+                  "Street": null
+                }
+              },
+              "OrderId": "181024174141",
+              "OrderDescripiton": null,
+              "OrderPackages": 2,
+              "Items": [
+                {
+                  "Name": "Prodotto 1",
+                  "Notes": "10 pezzi",
+                  "Amount": 70
+                },
+                {
+                  "Name": "Prodotto 2",
+                  "Notes": null,
+                  "Amount": 10.5
+                }
+              ],
+              "ShippingItems": [
+                {
+                  "Name": "Spedizione Italia",
+                  "Notes": null,
+                  "Amount": 6.4
+                }
+              ],
+              "SuccessUrl": "https://payments.weldpay.it/test/success?id=181024174141&token=e685801c-76cc-45d1-8a75-285dadde43f0",
+              "CancelUrl": "https://payments.weldpay.it/test/cancel?id=181024174141&token=e685801c-76cc-45d1-8a75-285dadde43f0",
+              "ServerNotificationUrl": "https://payments.weldpay.it/test/servernotification?id=181024174141&token=a5e31439-a836-4a26-81d1-4b5447bb76a4",
+              "AdditionalData": null
+            }
+
++ Response 200 (text/plain)
+
+    + Body
+
+            WARNING! Select always "Production" (not Apiary Mock Server or Proxy)
+            Response Body Example:
+            https://payments.weldpay.it/Payments/Create?r_id=101-AJw6y1nizcu80vNqeuPCPqUgf470TQavntXl2zc3Eks%3D
+    
+
+
+## Get TransactionStatus [/api/1.0/gateway/transaction-status/{weldpayTransactionId}]
+
+### /api/1.0/gateway/transaction-status/{weldpayTransactionId} [POST]
+
+_**Warning! This action cannot be verified with sandbox credentials because no transaction will be saved. Try it with production credentials.**_
+
+You could fetch the Transaction Status with `weldpaytransactionId`.
+
+TransactionStatus with `weldpaytransactionId` is also sent to ServerNotificationUrl with a server-server call when the payment is completed.
+An HTTP POST Request is sent with TransactionStatus as JSON Payload.
+
+If you din't received TransactionStatus or you didn't save it, see below to *Get TransactionStatus By RequestId*.
+
+#### TransactionStatus Example
+
+```
+{
+    "tokenizedRequestId": 101,
+    "tokenizedRequestToken": "AJw6y1nizcu80vNqeuPCPqUgf470TQavntXl2zc3Eks=",
+    "weldpayTransactionId": 13192,
+    "orderId": "181024174141",
+    "paymentMethod": "Gestpay",
+    "paymentTransactionId": "27",
+    "state": "PaymentConfirmed",
+    "stateCode": 100,
+    "isPaymentSuccessful": true,
+    "notes": null,
+    "buyer": {
+        "firstname": "Mario",
+        "lastname": "Rossi",
+        "taxCode": "RSSMRA88C15L400X",
+        "email": "mario.rossi@email.it",
+        "address": {
+            "zipCode": null,
+            "city": null,
+            "province": null,
+            "street": null
+        },
+        "shippingAddress": {
+            "zipCode": null,
+            "city": null,
+            "province": null,
+            "street": null
+        }
+    },
+    "seller": "SandboxEcommerce",
+    "orderAmount": 80.5,
+    "shippingAmount": 6.4,
+    "totalAmount": 86.9,
+    "lastUpdate": "2019-05-14T08:24:52",
+    "error": null,
+    "errorCode": null,
+    "lastPaidNotification": "2019-05-14T08:24:52",
+    "lastUnpaidNotification": null
+}
+```
+
+#### List of Transaction States
+
++ `Scratch` (0): Buyer has created a transaction (not used in payment bridge)
++ `Available` (1): Transaction is confirmed by Seller (not used in payment bridge)
++ `WaitingForPayment` (2): Waiting for payment
++ `PaymentConfirmed` (100): Payment confirmed by Weldpay
++ `Picking` (110): Shipment tracking - Picking (not used in payment bridge)
++ `InDelivery` (120): Shipment tracking - In delivery (not used in payment bridge)
++ `Delivered` (130): Shipment tracking - Delivered (not used in payment bridge)
++ `Archivied` (140): Transaction is archivied by Merchant or Weldpay
++ `Contest` (200): Payment is **NOT confirmed** by Weldpay, a challenge is open
++ `Canceled` (250): Canceled
++ `Error` (25): Generic Error (see notes and errors on TransactionStatus)
+
+#### Response:
+
+Transaction status object.
+
+Check the example on "Try" page.
+
++ Parameters
+
+    + weldpayTransactionId (number) - Id of Weldpay transaction
+
++ Request (application/json)
+
+    + Headers
+    
+            Authorization: Basic aXlKS2M1S3V4bHVhM3RUWVRsajR2eUE1VWN2ODZnM0J3R0VndVZRR3FTST06RkJGQmd3cWd3R2lnWU4rMVhGN25vY3RDTkJNZkdrQUZjaXY3SUhuYTVVV2Vpb0RlNjhTbUdpUUVCT09FSUVzNA==
+
++ Response 200 (application/json)
+
+    + Body
+    
+            WARNING! Select always "Production" (not Apiary Mock Server or Proxy)
+            Response Body Example:
+            {
+                "tokenizedRequestId": 101,
+                "tokenizedRequestToken": "AJw6y1nizcu80vNqeuPCPqUgf470TQavntXl2zc3Eks=",
+                "weldpayTransactionId": 13192,
+                "orderId": "181024174141",
+                "paymentMethod": "Gestpay",
+                "paymentTransactionId": "27",
+                "state": "PaymentConfirmed",
+                "stateCode": 100,
+                "isPaymentSuccessful": true,
+                "notes": null,
+                "buyer": {
+                    "firstname": "Mario",
+                    "lastname": "Rossi",
+                    "taxCode": "RSSMRA88C15L400X",
+                    "email": "mario.rossi@email.it",
+                    "address": {
+                        "zipCode": null,
+                        "city": null,
+                        "province": null,
+                        "street": null
+                    },
+                    "shippingAddress": {
+                        "zipCode": null,
+                        "city": null,
+                        "province": null,
+                        "street": null
+                    }
+                },
+                "seller": "SandboxEcommerce",
+                "orderAmount": 80.5,
+                "shippingAmount": 6.4,
+                "totalAmount": 86.9,
+                "lastUpdate": "2019-05-14T08:24:52",
+                "error": null,
+                "errorCode": null,
+                "lastPaidNotification": "2019-05-14T08:24:52",
+                "lastUnpaidNotification": null
+            }
+
+
+
+## Get TransactionStatus By RequestId [/api/1.0/gateway/transaction-status?r_id={requestId}]
+
+### /api/1.0/gateway/transaction-status?r_id={requestId} [POST]
+
+_**Warning! This action cannot be verified with sandbox credentials because no transaction will be saved. Try it with production credentials.**_
+
+You could fetch the Transaction Status also with `requestId`.
+
+Get the `requestId` parsing the result of the *Generate Transaction and Get Url*. The `r_id` query parameters is the `requestId`.
+
+#### Response:
+
+Transaction status object.
+
+Check the example on "Try" page.
+
++ Parameters
+
+    + requestId (string) - Weldpay RequestId, find it in generate-transaction API result as r_id
+
++ Request (application/json)
+
+    + Headers
+    
+            Authorization: Basic aXlKS2M1S3V4bHVhM3RUWVRsajR2eUE1VWN2ODZnM0J3R0VndVZRR3FTST06RkJGQmd3cWd3R2lnWU4rMVhGN25vY3RDTkJNZkdrQUZjaXY3SUhuYTVVV2Vpb0RlNjhTbUdpUUVCT09FSUVzNA==
+
++ Response 200 (application/json)
+
+    + Body
+    
+            WARNING! Select always "Production" (not Apiary Mock Server or Proxy)
+            Response Body Example:
+            {
+                "tokenizedRequestId": 101,
+                "tokenizedRequestToken": "AJw6y1nizcu80vNqeuPCPqUgf470TQavntXl2zc3Eks=",
+                "weldpayTransactionId": 13192,
+                "orderId": "181024174141",
+                "paymentMethod": "Gestpay",
+                "paymentTransactionId": "27",
+                "state": "PaymentConfirmed",
+                "stateCode": 100,
+                "isPaymentSuccessful": true,
+                "notes": null,
+                "buyer": {
+                    "firstname": "Mario",
+                    "lastname": "Rossi",
+                    "taxCode": "RSSMRA88C15L400X",
+                    "email": "mario.rossi@email.it",
+                    "address": {
+                        "zipCode": null,
+                        "city": null,
+                        "province": null,
+                        "street": null
+                    },
+                    "shippingAddress": {
+                        "zipCode": null,
+                        "city": null,
+                        "province": null,
+                        "street": null
+                    }
+                },
+                "seller": "SandboxEcommerce",
+                "orderAmount": 80.5,
+                "shippingAmount": 6.4,
+                "totalAmount": 86.9,
+                "lastUpdate": "2019-05-14T08:24:52",
+                "error": null,
+                "errorCode": null
+            }
+
+
+
+## Generate Recurrent Payment Transaction and Get Url [/api/1.0/gateway/generate-transaction-recurrent]
+
+### /api/1.0/gateway/generate-transaction-recurrent [POST]
+
+_**Warning! Recurring payments only work after acceptance and activation of the service**_
+
+You may create new transaction and get the authenticated url to redirect client.
+This call is to request a recurrent payment, with selected frequency amd period.
+
+#### Significant fields:
+
+All other fields is like generate-transaction API.
+
++ **`Period` (string, DAY/WEEK/MONTH/YEAR, optional)**: Period of payment recurrence
++ **`Frequency` (int, optional)**: Frequency of payment recurrence. It combining with period: 1 DAY, 2 MONTH
+
+#### ServerNotification and TransactionStatus
+
+All scheduled payments send continuous requests to the customer,
+once a day until payment is confirmed or the schedule is canceled.
+
+For each payment result Weldpay sends a ServerNotificatio with TransactionStatus.
+
+In TransactionStatus the lastPaidNotification and lastUnpaidNotification fields
+change based on the status of the last payment.
+
+A lastUnpaidNotification greater than lastPaidNotification means that the last
+period is not paid.
+
+#### Response:
+
+Payment page url. You have to redirect your customer to this payment page.
+
+Here an example:
+
+`https://payments.weldpay.it/Payments/Create?r_id=101-AJw6y1nizcu80vNqeuPCPqUgf470TQavntXl2zc3Eks%3D`
+
++ Request (application/json)
+
+    + Headers
+    
+            Authorization: Basic aXlKS2M1S3V4bHVhM3RUWVRsajR2eUE1VWN2ODZnM0J3R0VndVZRR3FTST06RkJGQmd3cWd3R2lnWU4rMVhGN25vY3RDTkJNZkdrQUZjaXY3SUhuYTVVV2Vpb0RlNjhTbUdpUUVCT09FSUVzNA==
+    
+    + Body
+    
+            {
+              "Lang": "it",
+              "Buyer": {
+                "Firstname": "Mario",
+                "Lastname": "Rossi",
+                "TaxCode": "RSSMRA88C15L400X",
+                "Email": "mario.rossi@email.it",
+                "Address": {
+                  "ZipCode": "20132",
+                  "City": "Milano",
+                  "Province": "MI",
+                  "Street": "via Roma, 18A"
+                },
+                "ShippingAddress": {
+                  "ZipCode": null,
+                  "City": null,
+                  "Province": null,
+                  "Street": null
+                }
+              },
+              "OrderId": "181024174141",
+              "OrderDescripiton": null,
+              "OrderPackages": 2,
+              "Items": [
+                {
+                  "Name": "Prodotto 1",
+                  "Notes": "10 pezzi",
+                  "Amount": 70
+                },
+                {
+                  "Name": "Prodotto 2",
+                  "Notes": null,
+                  "Amount": 10.5
+                }
+              ],
+              "ShippingItems": [
+                {
+                  "Name": "Spedizione Italia",
+                  "Notes": null,
+                  "Amount": 6.4
+                }
+              ],
+              "Period": "MONTH",
+              "Frequency": 1,
+              "SuccessUrl": "https://payment.weldpay.it/test/success?id=181024174141&token=e685801c-76cc-45d1-8a75-285dadde43f0",
+              "CancelUrl": "https://payment.weldpay.it/test/cancel?id=181024174141&token=e685801c-76cc-45d1-8a75-285dadde43f0",
+              "ServerNotificationUrl": "https://payment.weldpay.it/test/servernotification?id=181024174141&token=a5e31439-a836-4a26-81d1-4b5447bb76a4",
+              "AdditionalData": null
+            }
+
++ Response 200 (text/plain)
+
+    + Body
+
+            WARNING! Select always "Production" (not Apiary Mock Server or Proxy)
+            Response Body Example:
+            https://payments.weldpay.it/Payments/Create?r_id=101-AJw6y1nizcu80vNqeuPCPqUgf470TQavntXl2zc3Eks%3D
+
+
+
+
+## Additional Features - Split Payment [/api/1.0/gateway/generate-transaction?af=split-payment]
+
+_**This feature is to be implemented in accord with Weldpay Dev Team.**_
+
+### /api/1.0/gateway/generate-transaction [POST]
+
+#### Split Payment
+
+To request Weldpay to Split Payment into multiple sub-accounts, fill `AdditionalData.SplitPayment`
+with an array with appId and amount for each sub-accounts.
+
+Remaining amount is moved on your main account.
+
+Remaining amount must be greater then the Weldpay Fee.
+
+
++ Request (application/json)
+
+    + Headers
+    
+            Authorization: Basic aXlKS2M1S3V4bHVhM3RUWVRsajR2eUE1VWN2ODZnM0J3R0VndVZRR3FTST06RkJGQmd3cWd3R2lnWU4rMVhGN25vY3RDTkJNZkdrQUZjaXY3SUhuYTVVV2Vpb0RlNjhTbUdpUUVCT09FSUVzNA==
+    
+    + Body
+    
+            {
+              "Lang": "it",
+              "Buyer": {
+                "Firstname": "Mario",
+                "Lastname": "Rossi",
+                "TaxCode": "RSSMRA88C15L400X",
+                "Email": "mario.rossi@email.it",
+                "Address": {
+                  "ZipCode": "20132",
+                  "City": "Milano",
+                  "Province": "MI",
+                  "Street": "via Roma, 18A"
+                },
+                "ShippingAddress": {
+                  "ZipCode": null,
+                  "City": null,
+                  "Province": null,
+                  "Street": null
+                }
+              },
+              "OrderId": "181024174141",
+              "OrderDescripiton": null,
+              "OrderPackages": 2,
+              "Items": [
+                {
+                  "Name": "Prodotto 1",
+                  "Notes": "10 pezzi",
+                  "Amount": 70
+                },
+                {
+                  "Name": "Prodotto 2",
+                  "Notes": null,
+                  "Amount": 10.5
+                }
+              ],
+              "ShippingItems": [
+                {
+                  "Name": "Spedizione Italia",
+                  "Notes": null,
+                  "Amount": 6.4
+                }
+              ],
+              "SuccessUrl": "https://payments.weldpay.it/test/success?id=181024174141&token=e685801c-76cc-45d1-8a75-285dadde43f0",
+              "CancelUrl": "https://payments.weldpay.it/test/cancel?id=181024174141&token=e685801c-76cc-45d1-8a75-285dadde43f0",
+              "ServerNotificationUrl": "https://payments.weldpay.it/test/servernotification?id=181024174141&token=a5e31439-a836-4a26-81d1-4b5447bb76a4",
+              "AdditionalData": {
+                "SplitPayment": [
+                  { "AppId": 1, "Amount": 63 },
+                  { "AppId": 2, "Amount": 9.4 }
+                ]
+              }
+            }
+
++ Response 200 (text/plain)
+
+    + Body
+
+            WARNING! Select always "Production" (not Apiary Mock Server or Proxy)
+            Response Body Example:
+            https://payments.weldpay.it/Payments/Create?r_id=101-AJw6y1nizcu80vNqeuPCPqUgf470TQavntXl2zc3Eks%3D
